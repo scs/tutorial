@@ -1,0 +1,6 @@
+NAME: Config Sample
+16BIT: -1
+32BIT: 123456789
+
+SECTION
+NAME: Sample Section
