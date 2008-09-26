@@ -14,41 +14,38 @@
  *//*********************************************************************/
 int main(const int argc, const char * argv[])
 {
-  /* Handle to framework instance. */
-  void *hFramework;
-
-  /* Picture data structure. */
-  struct OSC_PICTURE pic;
-  memset(&pic, 0, sizeof(struct OSC_PICTURE));
-
-  /* Create framework */
-  OscCreate(&hFramework);
-  
-  /* Load bitmap module */
-  OscBmpCreate(hFramework);
-
-  /* Read picture from file */
-  OscBmpRead(&pic, "imgCapture.bmp");
-
-  /* Process picture */
-  /* -------------- */
-
-  /* Setup target picture */
-  pic.width = OSC_CAM_MAX_IMAGE_WIDTH;
-  pic.height = OSC_CAM_MAX_IMAGE_HEIGHT;
-  pic.type = OSC_PICTURE_GREYSCALE;
-
-  /* Write picture to file */
-  OscBmpWrite(&pic, "modified.bmp");
-
-  /* Destroy bitmap module */
-  OscBmpDestroy(hFramework);
-
-  /* Destroy framework */
-  OscDestroy(hFramework);
-
-  return 0;
-
+	/* Handle to framework instance. */
+	void *hFramework;
+	
+	/* Picture data structure. */
+	struct OSC_PICTURE pic;
+	memset(&pic, 0, sizeof(struct OSC_PICTURE));
+	
+	/* Create framework */
+	OscCreate(&hFramework);
+	
+	/* Load bitmap module */
+	OscBmpCreate(hFramework);
+	
+	/* Read picture from file */
+	OscBmpRead(&pic, "imgCapture.bmp");
+	
+	/* Process picture */
+	/* -------------- */
+	
+	/* Setup target picture */
+	pic.width = OSC_CAM_MAX_IMAGE_WIDTH;
+	pic.height = OSC_CAM_MAX_IMAGE_HEIGHT;
+	pic.type = OSC_PICTURE_GREYSCALE;
+	
+	/* Write picture to file */
+	OscBmpWrite(&pic, "modified.bmp");
+	
+	/* Destroy bitmap module */
+	OscBmpDestroy(hFramework);
+	
+	/* Destroy framework */
+	OscDestroy(hFramework);
+	
+	return 0;
 }
-
-

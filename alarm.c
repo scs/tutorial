@@ -14,9 +14,9 @@
 
 /*! @brief Framework module dependencies. */
 struct OSC_DEPENDENCY deps[] = {
-        {"sup", OscSupCreate, OscSupDestroy},
-        {"bmp", OscBmpCreate, OscBmpDestroy},
-       	{"cam", OscCamCreate, OscCamDestroy},
+	{ "sup", OscSupCreate, OscSupDestroy },
+	{ "bmp", OscBmpCreate, OscBmpDestroy },
+	{ "cam", OscCamCreate, OscCamDestroy },
 };
 
 /*********************************************************************//*!
@@ -27,17 +27,17 @@ struct OSC_DEPENDENCY deps[] = {
  *//*********************************************************************/
 int mean(struct OSC_PICTURE *pic)
 {
-  uint16 i,j;
-  uint32 sum = 0;
-  uint8 *p;
-  p = (uint8*)pic->data;
-  for(i = 0; i < pic->height; i++){
-	for(j = 0; j < pic->width; j++){
-	  sum += p[i*pic->width + j];
+	uint16 i,j;
+	uint32 sum = 0;
+	uint8 *p;
+	p = (uint8*)pic->data;
+	for(i = 0; i < pic->height; i++){
+		for(j = 0; j < pic->width; j++){
+			sum += p[i*pic->width + j];
+		}
 	}
-  }
-  sum = sum / (pic->width * pic->height);
-  return sum;
+	sum = sum / (pic->width * pic->height);
+	return sum;
 }
 
 
@@ -50,113 +50,104 @@ int mean(struct OSC_PICTURE *pic)
  *//*********************************************************************/
 int main(const int argc, const char* argv[])
 {
-  OSC_ERR err = SUCCESS;
-  void* hFramework;
-  uint8 frameBuffer[IMAGE_WIDTH * IMAGE_HEIGHT];
-  struct OSC_PICTURE pic;
-  uint32 m, n = 0, i, cycles, us, bufferIndex = 0, alarm = 0;
-  uint32 meanBuffer[HISTORY_LENGTH];
-  uint8 *tempPic;
-
-  /* Create framework */
-  err = OscCreate(&hFramework);
-  if(err != SUCCESS){
-	fprintf(stderr, "%s: Unable to create framework.\n",
-			__func__);
-	return err;
-  }
-
-  /* Load the framework module dependencies. */
-  err = OscLoadDependencies(hFramework, deps, 
-							sizeof(deps)/sizeof(struct OSC_DEPENDENCY));
-  
-  if(err != SUCCESS){
-	fprintf(stderr, "%s: ERROR: Unable to load dependencies! (%d)\n",
-			__func__, err);
-	return err;
-  }
-
-  /* Setup target picture */
-  pic.width = IMAGE_WIDTH;
-  pic.height = IMAGE_HEIGHT;
-  pic.type = OSC_PICTURE_GREYSCALE;
-
-  /* Configure camera */
-  OscCamPresetRegs();
-  OscCamSetAreaOfInterest(0,0,IMAGE_WIDTH,IMAGE_HEIGHT);
-  OscCamSetFrameBuffer(0, IMAGE_WIDTH * IMAGE_HEIGHT, frameBuffer, TRUE);
-  OscCamSetShutterWidth(50000); /* 50 ms shutter */
- 
-  /* Fill mean buffer */
-  for(i = 0; i < HISTORY_LENGTH; i++){
-	OscCamSetupCapture(0);
-	OscCamReadPicture(0, &pic.data, 0, 0);
-	meanBuffer[i] = mean(&pic);
-  }
-
-  /* Start alarm mode */
-  while(alarm == 0){
-	cycles = OscSupCycGet();
-
-	/* Take a picture, tr until successfull */
-	err = -1;
-	while(err != SUCCESS){
-	  OscCamSetupCapture(0);
-	  err = OscCamReadPicture(0, &pic.data, 0, 200);
+	OSC_ERR err = SUCCESS;
+	void* hFramework;
+	uint8 frameBuffer[IMAGE_WIDTH * IMAGE_HEIGHT];
+	struct OSC_PICTURE pic;
+	uint32 m, n = 0, i, cycles, us, bufferIndex = 0, alarm = 0;
+	uint32 meanBuffer[HISTORY_LENGTH];
+	uint8 *tempPic;
+	
+	/* Create framework */
+	err = OscCreate(&hFramework);
+	if (err != SUCCESS) {
+		fprintf(stderr, "%s: Unable to create framework.\n", __func__);
+		return err;
 	}
-
-	/* Calculate mean of new picture */
-	m = mean(&pic);
-
-	/* Calculate mean of the last pictures */
-	for(i = 0; i < HISTORY_LENGTH; i++){
-	  n += meanBuffer[i];
+	
+	/* Load the framework module dependencies. */
+	err = OscLoadDependencies(hFramework, deps, sizeof(deps)/sizeof(struct OSC_DEPENDENCY));
+	
+	if (err != SUCCESS) {
+		fprintf(stderr, "%s: ERROR: Unable to load dependencies! (%d)\n", __func__, err);
+		return err;
 	}
-	n = n / HISTORY_LENGTH;
-
-	/* Check if in range */
-	if(m > (n + THRESHOLD) || m <= (n - THRESHOLD)){
-	  alarm = 1;
-	  
-	  /* Tag the picture (draw horizontal lines) */
-	  tempPic = (uint8*)pic.data;
-	  for(i = 0; i < IMAGE_WIDTH; i++){
-		tempPic[40*IMAGE_WIDTH + i] = 0;
-		tempPic[41*IMAGE_WIDTH + i] = 255;
-		tempPic[439*IMAGE_WIDTH + i] = 255;
-		tempPic[440*IMAGE_WIDTH + i] = 0;
-	  }
+	
+	/* Setup target picture */
+	pic.width = IMAGE_WIDTH;
+	pic.height = IMAGE_HEIGHT;
+	pic.type = OSC_PICTURE_GREYSCALE;
+	
+	/* Configure camera */
+	OscCamPresetRegs();
+	OscCamSetAreaOfInterest(0,0,IMAGE_WIDTH,IMAGE_HEIGHT);
+	OscCamSetFrameBuffer(0, IMAGE_WIDTH * IMAGE_HEIGHT, frameBuffer, TRUE);
+	OscCamSetShutterWidth(50000); /* 50 ms shutter */
+	
+	/* Fill mean buffer */
+	for (i = 0; i < HISTORY_LENGTH; i++) {
+		OscCamSetupCapture(0);
+		OscCamReadPicture(0, &pic.data, 0, 0);
+		meanBuffer[i] = mean(&pic);
 	}
-
-
-	/* Add new mean to meanBuffer */
-	meanBuffer[bufferIndex++] = m;
-
-	/* Update buffer index */
-	bufferIndex = bufferIndex % HISTORY_LENGTH;
-
-	/* Calculate processing time */
-	cycles = OscSupCycGet() - cycles;
-	us = OscSupCycToMicroSecs(cycles);
-
-	printf("Time=%lu  Picture=%lu  Last Pictures=%lu\n",us,m,n);
-
-	n = 0;
-
-  }
-
-  /* Write picture to file */
-  OscBmpWrite(&pic, "alarm.bmp");
-
-  /* Destroy modules */
-  OscUnloadDependencies(hFramework, deps, 
-						sizeof(deps)/sizeof(struct OSC_DEPENDENCY));
-
-  /* Destroy framework */
-  OscDestroy(hFramework);
-
-  return 0;
-
+	
+	/* Start alarm mode */
+	while (alarm == 0) {
+		cycles = OscSupCycGet();
+		
+		/* Take a picture, tr until successfull */
+		err = -1;
+		while (err != SUCCESS){
+			OscCamSetupCapture(0);
+			err = OscCamReadPicture(0, &pic.data, 0, 200);
+		}
+		
+		/* Calculate mean of new picture */
+		m = mean(&pic);
+		
+		/* Calculate mean of the last pictures */
+		for (i = 0; i < HISTORY_LENGTH; i++) {
+			n += meanBuffer[i];
+		}
+		n = n / HISTORY_LENGTH;
+		
+		/* Check if in range */
+		if (m > (n + THRESHOLD) || m <= (n - THRESHOLD)) {
+			alarm = 1;
+			
+			/* Tag the picture (draw horizontal lines) */
+			tempPic = (uint8*)pic.data;
+			for (i = 0; i < IMAGE_WIDTH; i++) {
+				tempPic[40*IMAGE_WIDTH + i] = 0;
+				tempPic[41*IMAGE_WIDTH + i] = 255;
+				tempPic[439*IMAGE_WIDTH + i] = 255;
+				tempPic[440*IMAGE_WIDTH + i] = 0;
+			}
+		}
+		
+		/* Add new mean to meanBuffer */
+		meanBuffer[bufferIndex++] = m;
+		
+		/* Update buffer index */
+		bufferIndex = bufferIndex % HISTORY_LENGTH;
+		
+		/* Calculate processing time */
+		cycles = OscSupCycGet() - cycles;
+		us = OscSupCycToMicroSecs(cycles);
+		
+		printf("Time=%lu  Picture=%lu  Last Pictures=%lu\n",us,m,n);
+		
+		n = 0;
+	}
+	
+	/* Write picture to file */
+	OscBmpWrite(&pic, "alarm.bmp");
+	
+	/* Destroy modules */
+	OscUnloadDependencies(hFramework, deps, sizeof(deps)/sizeof(struct OSC_DEPENDENCY));
+	
+	/* Destroy framework */
+	OscDestroy(hFramework);
+	
+	return 0;
 }
-
-
