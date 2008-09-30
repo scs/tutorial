@@ -24,18 +24,23 @@
 
 #include "inc/oscar.h"
 #include <stdio.h>
+#include <unistd.h>
 
-#define HISTORY_LENGTH 10
+#define HISTORY_LENGTH 20
 #define IMAGE_WIDTH 752
 #define IMAGE_HEIGHT 480
-#define THRESHOLD 3
+#define THRESHOLD 2
 
 /*! @brief Framework module dependencies. */
 struct OSC_DEPENDENCY deps[] = {
 	{ "sup", OscSupCreate, OscSupDestroy },
 	{ "bmp", OscBmpCreate, OscBmpDestroy },
 	{ "cam", OscCamCreate, OscCamDestroy },
+	{ "gpio", OscGpioCreate, OscGpioDestroy },
 };
+
+/*! @brief Global variables. */
+int led = 0;
 
 /*********************************************************************//*!
  * @brief Calculate mean of picture.
@@ -58,6 +63,26 @@ int mean(struct OSC_PICTURE *pic)
 	return sum;
 }
 
+/*********************************************************************//*!
+ * @brief Toggle survailance indicator LED.
+ * 
+ *//*********************************************************************/
+void toggle()
+{
+    OSC_ERR err = SUCCESS;
+    if(led == 1){
+	  err = OscGpioWrite(GPIO_OUT1, FALSE);
+	  led = 0;
+    }else{
+	  err = OscGpioWrite(GPIO_OUT1, TRUE);
+	  led = 1;
+    }
+	if (err != SUCCESS) {
+	  fprintf(stderr, "%s: ERROR: GPIO write error! (%d)\n", __func__, err);
+	}
+
+	return;
+}
 
 /*********************************************************************//*!
  * @brief Program entry.
@@ -72,10 +97,13 @@ int main(const int argc, const char* argv[])
 	void* hFramework;
 	uint8 frameBuffer[IMAGE_WIDTH * IMAGE_HEIGHT];
 	struct OSC_PICTURE pic;
-	uint32 m, n = 0, i, cycles, us, bufferIndex = 0, alarm = 0;
+	uint32 m, n = 0, i, bufferIndex = 0;
 	uint32 meanBuffer[HISTORY_LENGTH];
-	uint8 *tempPic;
 	
+
+	/* Wait some time */
+	sleep(5);
+
 	/* Create framework */
 	err = OscCreate(&hFramework);
 	if (err != SUCCESS) {
@@ -85,82 +113,155 @@ int main(const int argc, const char* argv[])
 	
 	/* Load the framework module dependencies. */
 	err = OscLoadDependencies(hFramework, deps, sizeof(deps)/sizeof(struct OSC_DEPENDENCY));
-	
 	if (err != SUCCESS) {
 		fprintf(stderr, "%s: ERROR: Unable to load dependencies! (%d)\n", __func__, err);
 		return err;
 	}
-	
+
+	/* Configure GPIO's (LED's) outputs active high */
+ 	err = OscGpioSetupPolarity(GPIO_OUT1, FALSE);
+ 	if (err != SUCCESS) {
+	  fprintf(stderr, "%s: ERROR: Unable to set GPIO! (%d)\n", __func__, err);
+	  return err;
+	}
+	err = OscGpioSetupPolarity(GPIO_OUT2, FALSE);
+	if (err != SUCCESS) {
+	  fprintf(stderr, "%s: ERROR: Unable to set GPIO! (%d)\n", __func__, err);
+	  return err;
+	}
+	OscGpioWrite(GPIO_OUT1, FALSE);
+	OscGpioWrite(GPIO_OUT2, FALSE);
+
 	/* Setup target picture */
 	pic.width = IMAGE_WIDTH;
 	pic.height = IMAGE_HEIGHT;
 	pic.type = OSC_PICTURE_GREYSCALE;
-	
+
 	/* Configure camera */
 	OscCamPresetRegs();
 	OscCamSetAreaOfInterest(0,0,IMAGE_WIDTH,IMAGE_HEIGHT);
 	OscCamSetFrameBuffer(0, IMAGE_WIDTH * IMAGE_HEIGHT, frameBuffer, TRUE);
 	OscCamSetShutterWidth(50000); /* 50 ms shutter */
-	
-	/* Fill mean buffer */
+
+	/* Initialize mean buffer */
 	for (i = 0; i < HISTORY_LENGTH; i++) {
-		OscCamSetupCapture(0);
-		OscCamReadPicture(0, &pic.data, 0, 0);
+		err = OscCamSetupCapture(0);
+		if (err != SUCCESS) {
+		  fprintf(stderr, "%s: ERROR: Unable setup capture! (%d)\n", __func__, err);
+		  return err;
+		}
+		err = OscGpioTriggerImage();
+		if (err != SUCCESS) {
+		  fprintf(stderr, "%s: ERROR: Unable to trigger! (%d)\n", __func__, err);
+		  return err;
+		}
+		err = OscCamReadPicture(0, &pic.data, 0, 0);
+		if (err != SUCCESS) {
+		  fprintf(stderr, "%s: ERROR: Unable read picture! (%d)\n", __func__, err);
+		  return err;
+		}
+
 		meanBuffer[i] = mean(&pic);
 	}
-	
+
 	/* Start alarm mode */
-	while (alarm == 0) {
-		cycles = OscSupCycGet();
-		
-		/* Take a picture, tr until successfull */
-		err = -1;
-		while (err != SUCCESS){
-			OscCamSetupCapture(0);
-			err = OscCamReadPicture(0, &pic.data, 0, 200);
+	while (1) {
+
+	    /* Indicate active surveillance */
+	    toggle();
+
+		/* Take a new picture */
+		err = OscCamSetupCapture(0);
+		if (err != SUCCESS) {
+		  fprintf(stderr, "%s: ERROR: Unable setup capture! (%d)\n", __func__, err);
+		  return err;
+		}
+		err = OscGpioTriggerImage();
+		if (err != SUCCESS) {
+		  fprintf(stderr, "%s: ERROR: Unable to trigger! (%d)\n", __func__, err);
+		  return err;
+		}
+		err = OscCamReadPicture(0, &pic.data, 0, 0);
+		if (err != SUCCESS) {
+		  fprintf(stderr, "%s: ERROR: Unable read picture! (%d)\n", __func__, err);
+		  return err;
 		}
 		
 		/* Calculate mean of new picture */
 		m = mean(&pic);
 		
-		/* Calculate mean of the last pictures */
+		/* Calculate mean of history */
 		for (i = 0; i < HISTORY_LENGTH; i++) {
 			n += meanBuffer[i];
 		}
 		n = n / HISTORY_LENGTH;
 		
-		/* Check if in range */
+		/* Check if in range and therefore detect intruder */
 		if (m > (n + THRESHOLD) || m <= (n - THRESHOLD)) {
-			alarm = 1;
-			
-			/* Tag the picture (draw horizontal lines) */
-			tempPic = (uint8*)pic.data;
-			for (i = 0; i < IMAGE_WIDTH; i++) {
-				tempPic[40*IMAGE_WIDTH + i] = 0;
-				tempPic[41*IMAGE_WIDTH + i] = 255;
-				tempPic[439*IMAGE_WIDTH + i] = 255;
-				tempPic[440*IMAGE_WIDTH + i] = 0;
+
+			/* Indicate detected intruder with LED */
+			err = OscGpioWrite(GPIO_OUT2, TRUE);
+			if (err != SUCCESS) {
+			  fprintf(stderr, "%s: ERROR: GPIO write error! (%d)\n", __func__, err);
+			  return err;
 			}
+			err = OscGpioWrite(GPIO_OUT1, FALSE);
+			if (err != SUCCESS) {
+			  fprintf(stderr, "%s: ERROR: GPIO write error! (%d)\n", __func__, err);
+			  return err;
+			}
+			led = 0;
+
+			/* Write a picture of the intruder to a file */
+			OscBmpWrite(&pic, "../intruder.bmp");
+
+			/* Take further actions (we just wait for some time and restart) */
+			/* ------------------------------------------------------------- */
+			sleep(2);
+
+			/* Signal alarm end with LED */
+			err = OscGpioWrite(GPIO_OUT2, FALSE);
+			if (err != SUCCESS) {
+			  fprintf(stderr, "%s: ERROR: GPIO write error! (%d)\n", __func__, err);
+			  return err;
+			}
+
+			/* Re-Initialize mean buffer */
+			for (i = 0; i < HISTORY_LENGTH; i++) {
+			  err = OscCamSetupCapture(0);
+			  if (err != SUCCESS) {
+				fprintf(stderr, "%s: ERROR: Unable setup capture! (%d)\n", __func__, err);
+				return err;
+			  }
+			  err = OscGpioTriggerImage();
+			  if (err != SUCCESS) {
+				fprintf(stderr, "%s: ERROR: Unable to trigger! (%d)\n", __func__, err);
+				return err;
+			  }
+			  err = OscCamReadPicture(0, &pic.data, 0, 0);
+			  if (err != SUCCESS) {
+				fprintf(stderr, "%s: ERROR: Unable read picture! (%d)\n", __func__, err);
+				return err;
+			  }
+			  
+			  meanBuffer[i] = mean(&pic);
+			}
+
+			/* Reset buffer index */
+			bufferIndex = 0;
+		}else{
+		    /* Add new mean to meanBuffer */
+		    meanBuffer[bufferIndex++] = m;
+		  
+			/* Update buffer index */
+			bufferIndex = bufferIndex % HISTORY_LENGTH;
 		}
-		
-		/* Add new mean to meanBuffer */
-		meanBuffer[bufferIndex++] = m;
-		
-		/* Update buffer index */
-		bufferIndex = bufferIndex % HISTORY_LENGTH;
-		
-		/* Calculate processing time */
-		cycles = OscSupCycGet() - cycles;
-		us = OscSupCycToMicroSecs(cycles);
-		
-		printf("Time=%lu  Picture=%lu  Last Pictures=%lu\n",us,m,n);
-		
+
+		/* Reset history mean */
 		n = 0;
 	}
 	
-	/* Write picture to file */
-	OscBmpWrite(&pic, "alarm.bmp");
-	
+
 	/* Destroy modules */
 	OscUnloadDependencies(hFramework, deps, sizeof(deps)/sizeof(struct OSC_DEPENDENCY));
 	
