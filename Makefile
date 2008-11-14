@@ -109,8 +109,8 @@ alarm_target: alarm.c inc/*.h lib/libosc_target.a
 # Set symlinks
 get:
 	@ rm -rf inc lib
-	@ ln -s ../oscar/staging/inc ./inc
-	@ ln -s ../oscar/staging/lib ./lib
+	@ ln -s ../../oscar/staging/inc ./inc
+	@ ln -s ../../oscar/staging/lib ./lib
 	@ echo "Configured Oscar framework."
 
 
