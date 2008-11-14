@@ -56,6 +56,10 @@ int main(const int argc, const char * argv[])
 #if defined(OSC_HOST)
 	OscFrdCreate(hFramework);
 #endif
+
+#if defined(OSC_TARGET)
+	OscGpioCreate(hFramework);
+#endif
 	
 #if defined(OSC_HOST)
 	/* Setup file name reader (for host compiled version); read constant image */
@@ -64,17 +68,21 @@ int main(const int argc, const char * argv[])
 #endif
 	
 	/* Configure camera */
-	OscCamPresetRegs();
+	/*	OscCamPresetRegs();*/
+	OscCamSetShutterWidth(50000);
 	OscCamSetAreaOfInterest(0,0,OSC_CAM_MAX_IMAGE_WIDTH, OSC_CAM_MAX_IMAGE_HEIGHT);
 	OscCamSetFrameBuffer(0, OSC_CAM_MAX_IMAGE_WIDTH*OSC_CAM_MAX_IMAGE_HEIGHT, frameBuffer, TRUE);
 	
 	/* Take a picture */
 	OscCamSetupCapture(0);
+#if defined(OSC_TARGET)
+	OscGpioTriggerImage();
+#endif
 	OscCamReadPicture(0, (void*)&rawPic, 0, 0);
 	
 	/* Debayer (transform to colored picture) */
-	OscCamGetBayerOrder(&enBayerOrder, 0, 0);
-	OscVisDebayer(&rawPic, OSC_CAM_MAX_IMAGE_WIDTH, OSC_CAM_MAX_IMAGE_HEIGHT, enBayerOrder, &colorPic);
+	/*OscCamGetBayerOrder(&enBayerOrder, 0, 0);
+	  OscVisDebayer((uint8*)&rawPic, OSC_CAM_MAX_IMAGE_WIDTH, OSC_CAM_MAX_IMAGE_HEIGHT, enBayerOrder, (uint8*)&colorPic);*/
 	
 	/* Write picture to file */
 	pic.width = OSC_CAM_MAX_IMAGE_WIDTH;
@@ -89,6 +97,10 @@ int main(const int argc, const char * argv[])
 	OscVisDestroy(hFramework);
 #if defined(OSC_HOST)
 	OscFrdDestroy(hFramework);
+#endif
+
+#if defined(OSC_TARGET)
+	OscGpioDestroy(hFramework);
 #endif
 	
 	/* Destroy framework */

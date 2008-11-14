@@ -63,9 +63,12 @@ int main(const int argc, const char * argv[])
 	
 	/* Load camera module */
 	OscCamCreate(hFramework);
-	
-	/*OscBmpCreate(hFramework);*/
-	
+
+#if defined(OSC_TARGET)
+	/* Load GPIO module */
+	OscGpioCreate(hFramework);
+#endif	
+
 #if defined(OSC_HOST)
 	/* Load file reader module and define capture file,
 	 * if compiled for host platform */
@@ -113,6 +116,15 @@ int main(const int argc, const char * argv[])
 		printf("%s: Unable to setup initial capture (%d)!\n", __func__, err);
 		return err;
 	}
+
+#if defined(OSC_TARGET)
+	/* Trigger image capturing */
+	err = OscGpioTriggerImage();
+	if(err != SUCCESS){
+		printf("%s: Unable to trigger capture (%d)!\n", __func__, err);
+		return err;
+	}
+#endif
 	
 	/* Do something ... */
 	/* ---------------- */
@@ -148,7 +160,12 @@ int main(const int argc, const char * argv[])
 	
 	/* Unload camera module */
 	OscCamDestroy(hFramework);
-	
+
+#if defined(OSC_TARGET)
+	/* Unload GPIO module */
+	OscGpioDestroy(hFramework);
+#endif
+
 #if defined(OSC_HOST)
 	/* Unload file reader module if compiled for host platform */
 	OscFrdDestroy(hFramework);

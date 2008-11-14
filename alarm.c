@@ -257,7 +257,7 @@ int main(const int argc, const char* argv[])
 			bufferIndex = bufferIndex % HISTORY_LENGTH;
 		}
 
-		/* Reset history mean */
+		/* Reset mean history */
 		n = 0;
 	}
 	
