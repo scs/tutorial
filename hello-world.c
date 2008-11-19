@@ -27,9 +27,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-uint8 frameBuffer[OSC_CAM_MAX_IMAGE_WIDTH * OSC_CAM_MAX_IMAGE_HEIGHT];
-uint8 colorPic[3 * OSC_CAM_MAX_IMAGE_WIDTH * OSC_CAM_MAX_IMAGE_HEIGHT];
-
 /*********************************************************************//*!
  * @brief Program entry.
  * 
@@ -46,6 +43,9 @@ int main(const int argc, const char * argv[])
 	/*! @brief Handle to file name reader for camera images on the host. */
 	void *hFileNameReader;
 #endif
+
+	static uint8 frameBuffer[OSC_CAM_MAX_IMAGE_WIDTH * OSC_CAM_MAX_IMAGE_HEIGHT];
+	static uint8 colorPic[3 * OSC_CAM_MAX_IMAGE_WIDTH * OSC_CAM_MAX_IMAGE_HEIGHT];
 	
 	uint16 i;
 	uint8 * rawPic = NULL;
@@ -73,10 +73,15 @@ int main(const int argc, const char * argv[])
 		}
 		else if (strcmp(argv[i], "-h") == 0)
 		{
-			printf ("Usage: hello-world [ -h ] [ -d ] [ -s <shutter-width> ]\n");
-			printf ("    -h: Prints this help.");
-			printf ("    -d: Debayers the image.");
-			printf ("    -s <shutter-width>: Sets the shutter with in us.");
+			printf("Usage: hello-world [ -h ] [ -d ] [ -s <shutter-width> ]\n");
+			printf("    -h: Prints this help.");
+			printf("    -d: Debayers the image.");
+			printf("    -s <shutter-width>: Sets the shutter with in us.");
+		}
+		else
+		{
+			printf("Error: Unknown option: %s", argv[i]);
+			return 1;
 		}
 	}
 	
@@ -134,7 +139,8 @@ int main(const int argc, const char * argv[])
 		pic.type = OSC_PICTURE_GREYSCALE;
 		pic.data = rawPic;
 	}
-	OscBmpWrite(&pic, "/home/httpd/hello-world.bmp");
+	OscBmpWrite(&pic, "/home/httpd/hello-world.bmp~");
+	rename("/home/httpd/hello-world.bmp~", "/home/httpd/hello-world.bmp");
 	
 	/* Destroy modules */
 	OscBmpDestroy(hFramework);
