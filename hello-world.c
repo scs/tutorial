@@ -64,9 +64,9 @@ int main(const int argc, const char * argv[])
 		else if (strcmp(argv[i], "-s") == 0)
 		{
 			i += 1;
-			if (i == argc)
+			if (i >= argc)
 			{
-				printf ("Error: -s needs an argument.\n");
+				printf("Error: -s needs an argument.\n");
 				return 1;
 			}
 			opt_shutterWidth = atoi(argv[i]);
@@ -107,7 +107,6 @@ int main(const int argc, const char * argv[])
 #endif
 	
 	/* Configure camera */
-	/*	OscCamPresetRegs();*/
 	OscCamSetShutterWidth(opt_shutterWidth);
 	OscCamSetAreaOfInterest(0, 0, OSC_CAM_MAX_IMAGE_WIDTH, OSC_CAM_MAX_IMAGE_HEIGHT);
 	OscCamSetFrameBuffer(0, OSC_CAM_MAX_IMAGE_WIDTH*OSC_CAM_MAX_IMAGE_HEIGHT, frameBuffer, TRUE);
@@ -115,6 +114,12 @@ int main(const int argc, const char * argv[])
 	/* Take a picture */
 	OscCamSetupCapture(0);
 #if defined(OSC_TARGET)
+	/* This hacks around the camera chip activating settings only after the next image taken. */
+	OscGpioTriggerImage();
+	OscCamReadPicture(0, (void *) &rawPic, 0, 0);
+	OscCamSetShutterWidth(48);
+	
+	OscCamSetupCapture(0);
 	OscGpioTriggerImage();
 #endif
 	OscCamReadPicture(0, (void *) &rawPic, 0, 0);
