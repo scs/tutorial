@@ -20,7 +20,7 @@
  * @brief Simple alarm application.
  * Calculates the mean of a captured picture and compares it with the mean
  * of the last pictures. If the difference exceeds a threshold, the alarm is
- * activated (the application ends). */
+ * activated (GPIO is activated). */
 
 #include "inc/oscar.h"
 #include <stdio.h>

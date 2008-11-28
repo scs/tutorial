@@ -22,6 +22,10 @@
  */
 
 #include "inc/oscar.h"
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*********************************************************************//*!
  * @brief Program entry.
@@ -39,12 +43,47 @@ int main(const int argc, const char * argv[])
 	/*! @brief Handle to file name reader for camera images on the host. */
 	void *hFileNameReader;
 #endif
+
+	static uint8 frameBuffer[OSC_CAM_MAX_IMAGE_WIDTH * OSC_CAM_MAX_IMAGE_HEIGHT];
+	static uint8 colorPic[3 * OSC_CAM_MAX_IMAGE_WIDTH * OSC_CAM_MAX_IMAGE_HEIGHT];
 	
-	uint8 frameBuffer[OSC_CAM_MAX_IMAGE_WIDTH*OSC_CAM_MAX_IMAGE_HEIGHT];
-	uint8 rawPic[OSC_CAM_MAX_IMAGE_WIDTH*OSC_CAM_MAX_IMAGE_HEIGHT];
-	uint8 colorPic[3*OSC_CAM_MAX_IMAGE_WIDTH*OSC_CAM_MAX_IMAGE_HEIGHT];
+	uint16 i;
+	uint8 * rawPic = NULL;
 	struct OSC_PICTURE pic;
 	enum EnBayerOrder enBayerOrder;
+	
+	int32 opt_shutterWidth = 50000;
+	bool opt_debayer = false;
+	
+	for (i = 1; i < argc; i += 1)
+	{
+		if (strcmp(argv[i], "-d") == 0)
+		{
+			opt_debayer = true;
+		}
+		else if (strcmp(argv[i], "-s") == 0)
+		{
+			i += 1;
+			if (i >= argc)
+			{
+				printf("Error: -s needs an argument.\n");
+				return 1;
+			}
+			opt_shutterWidth = atoi(argv[i]);
+		}
+		else if (strcmp(argv[i], "-h") == 0)
+		{
+			printf("Usage: hello-world [ -h ] [ -d ] [ -s <shutter-width> ]\n");
+			printf("    -h: Prints this help.");
+			printf("    -d: Debayers the image.");
+			printf("    -s <shutter-width>: Sets the shutter with in us.");
+		}
+		else
+		{
+			printf("Error: Unknown option: %s", argv[i]);
+			return 1;
+		}
+	}
 	
 	/* Create framework */
 	OscCreate(&hFramework);
@@ -68,28 +107,45 @@ int main(const int argc, const char * argv[])
 #endif
 	
 	/* Configure camera */
-	/*	OscCamPresetRegs();*/
-	OscCamSetShutterWidth(50000);
-	OscCamSetAreaOfInterest(0,0,OSC_CAM_MAX_IMAGE_WIDTH, OSC_CAM_MAX_IMAGE_HEIGHT);
+	OscCamSetShutterWidth(opt_shutterWidth);
+	OscCamSetAreaOfInterest(0, 0, OSC_CAM_MAX_IMAGE_WIDTH, OSC_CAM_MAX_IMAGE_HEIGHT);
 	OscCamSetFrameBuffer(0, OSC_CAM_MAX_IMAGE_WIDTH*OSC_CAM_MAX_IMAGE_HEIGHT, frameBuffer, TRUE);
 	
 	/* Take a picture */
 	OscCamSetupCapture(0);
 #if defined(OSC_TARGET)
+	/* This hacks around the camera chip activating settings only after the next image taken. */
+	OscGpioTriggerImage();
+	OscCamReadPicture(0, (void *) &rawPic, 0, 0);
+	OscCamSetShutterWidth(48);
+	
+	OscCamSetupCapture(0);
 	OscGpioTriggerImage();
 #endif
-	OscCamReadPicture(0, (void*)&rawPic, 0, 0);
+	OscCamReadPicture(0, (void *) &rawPic, 0, 0);
 	
 	/* Debayer (transform to colored picture) */
-	/*OscCamGetBayerOrder(&enBayerOrder, 0, 0);
-	  OscVisDebayer((uint8*)&rawPic, OSC_CAM_MAX_IMAGE_WIDTH, OSC_CAM_MAX_IMAGE_HEIGHT, enBayerOrder, (uint8*)&colorPic);*/
+	/* OscCamGetBayerOrder(&enBayerOrder, 0, 0); */
+	/* OscVisDebayer((uint8*)&rawPic, OSC_CAM_MAX_IMAGE_WIDTH, OSC_CAM_MAX_IMAGE_HEIGHT, enBayerOrder, (uint8*)&colorPic);*/
 	
 	/* Write picture to file */
 	pic.width = OSC_CAM_MAX_IMAGE_WIDTH;
 	pic.height = OSC_CAM_MAX_IMAGE_HEIGHT;
-	pic.type = OSC_PICTURE_BGR_24;
-	pic.data = (void*)&colorPic;
-	OscBmpWrite(&pic, "hello-world.bmp");
+	
+	if (opt_debayer)
+	{
+		OscCamGetBayerOrder(&enBayerOrder, 0, 0);
+		OscVisDebayer(frameBuffer, OSC_CAM_MAX_IMAGE_WIDTH, OSC_CAM_MAX_IMAGE_HEIGHT, enBayerOrder, colorPic);
+		pic.type = OSC_PICTURE_BGR_24;
+		pic.data = colorPic;
+	}
+	else
+	{
+		pic.type = OSC_PICTURE_GREYSCALE;
+		pic.data = rawPic;
+	}
+	OscBmpWrite(&pic, "/home/httpd/hello-world.bmp~");
+	rename("/home/httpd/hello-world.bmp~", "/home/httpd/hello-world.bmp");
 	
 	/* Destroy modules */
 	OscBmpDestroy(hFramework);

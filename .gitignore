@@ -1,0 +1,5 @@
+*_target
+*_host
+*.gdb
+/inc
+/lib
