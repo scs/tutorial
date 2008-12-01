@@ -22,6 +22,7 @@
  */
 
 #include "inc/oscar.h"
+#include <string.h>
 
 /*********************************************************************//*!
  * @brief Program entry.
