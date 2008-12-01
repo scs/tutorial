@@ -55,6 +55,7 @@ cfg_target: cfg.c inc/*.h lib/libosc_target.a
 	$(TARGET_LDFLAGS) -o cfg$(TARGET_SUFFIX)
 	@echo "Target executable done."
 	[ -d /tftpboot ] && cp cfg$(TARGET_SUFFIX) /tftpboot/cfg; exit 0
+	[ -d /tftpboot ] && cp config.txt /tftpboot/config.txt; exit 0
 
 dma_host: dma.c inc/*.h lib/libosc_host.a
 	@echo "Compiling for host.."
