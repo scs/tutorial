@@ -4,12 +4,12 @@ TARGET_SUFFIX = _target
 
 # Cross-Compiler executables and flags
 TARGET_CC = bfin-uclinux-gcc
-TARGET_CFLAGS = -Wall -pedantic -O2 -DOSC_TARGET
+TARGET_CFLAGS = -Wall -Wno-long-long -pedantic -O2 -DOSC_TARGET
 TARGET_LDFLAGS = -DOSC_TARGET -Wl,-elf2flt="-s 1048576" -lbfdsp
 
 # Host-Compiler executables and flags
 HOST_CC = gcc 
-HOST_CFLAGS = $(HOST_FEATURES) -Wall -pedantic -DOSC_HOST -g
+HOST_CFLAGS = $(HOST_FEATURES) -Wall -Wno-long-long -pedantic -DOSC_HOST -g
 HOST_LDFLAGS = -lm
 
 all: bmp_target bmp_host cam_target cam_host cfg_target cfg_host dma_target dma_host sup_target sup_host hello-world_target hello-world_host alarm_target
