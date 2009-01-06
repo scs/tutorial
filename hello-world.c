@@ -27,6 +27,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(OSC_HOST)
+# define WWW_PATH "/var/www/"
+#endif /* OSC_HOST */
+#if defined(OSC_TARGET)
+# define WWW_PATH "/home/httpd/"
+#endif /* OSC_TARGET */
+
 /*********************************************************************//*!
  * @brief Program entry.
  * 
@@ -39,7 +46,7 @@ int main(const int argc, const char * argv[])
 	/*! @brief Handle to framework instance. */
 	void *hFramework;
 	
-#if defined(OSC_HOST)
+#if defined(OSC_HOST) || defined(OSC_SIM)
 	/*! @brief Handle to file name reader for camera images on the host. */
 	void *hFileNameReader;
 #endif
@@ -92,15 +99,9 @@ int main(const int argc, const char * argv[])
 	OscBmpCreate(hFramework);
 	OscCamCreate(hFramework);
 	OscVisCreate(hFramework);
-#if defined(OSC_HOST)
-	OscFrdCreate(hFramework);
-#endif
-
-#if defined(OSC_TARGET)
 	OscGpioCreate(hFramework);
-#endif
 	
-#if defined(OSC_HOST)
+#if defined(OSC_HOST) || defined(OSC_SIM)
 	/* Setup file name reader (for host compiled version); read constant image */
 	OscFrdCreateConstantReader(&hFileNameReader, "imgCapture.bmp");
 	OscCamSetFileNameReader(hFileNameReader);
@@ -144,20 +145,14 @@ int main(const int argc, const char * argv[])
 		pic.type = OSC_PICTURE_GREYSCALE;
 		pic.data = rawPic;
 	}
-	OscBmpWrite(&pic, "/home/httpd/hello-world.bmp~");
-	rename("/home/httpd/hello-world.bmp~", "/home/httpd/hello-world.bmp");
+	OscBmpWrite(&pic, WWW_PATH "hello-world.bmp~");
+	rename(WWW_PATH "hello-world.bmp~", WWW_PATH "hello-world.bmp");
 	
 	/* Destroy modules */
 	OscBmpDestroy(hFramework);
 	OscCamDestroy(hFramework);
 	OscVisDestroy(hFramework);
-#if defined(OSC_HOST)
-	OscFrdDestroy(hFramework);
-#endif
-
-#if defined(OSC_TARGET)
 	OscGpioDestroy(hFramework);
-#endif
 	
 	/* Destroy framework */
 	OscDestroy(hFramework);
