@@ -36,7 +36,7 @@ int main(const int argc, const char * argv[])
 	/* Handle to framework instance. */
 	void *hFramework;
 	
-#if defined(OSC_HOST)
+#if defined(OSC_HOST) || defined(OSC_SIM)
 	/* Handle to file name reader, if compiled for host platform. */
 	void *hFileNameReader;
 #endif
@@ -64,18 +64,9 @@ int main(const int argc, const char * argv[])
 	/* Load camera module */
 	OscCamCreate(hFramework);
 
-#if defined(OSC_TARGET)
 	/* Load GPIO module */
 	OscGpioCreate(hFramework);
-#endif	
 
-#if defined(OSC_HOST)
-	/* Load file reader module and define capture file,
-	 * if compiled for host platform */
-	OscFrdCreate(hFramework);
-	OscFrdCreateConstantReader(&hFileNameReader, "imgCapture.bmp");
-#endif
-	
 	p.width = OSC_CAM_MAX_IMAGE_WIDTH;
 	p.height = OSC_CAM_MAX_IMAGE_HEIGHT;
 	p.type = OSC_PICTURE_GREYSCALE;
@@ -98,8 +89,9 @@ int main(const int argc, const char * argv[])
 	OscCamSetBlackLevelOffset(blackOffset);
 	OscCamSetupPerspective(OSC_CAM_PERSPECTIVE_VERTICAL_MIRROR);
 	
-#if defined(OSC_HOST)
+#if defined(OSC_HOST) || defined(OSC_SIM)
 	/* Setup file name reader if compiled for host platform */
+	OscFrdCreateConstantReader(&hFileNameReader, "imgCapture.bmp");
 	OscCamSetFileNameReader(hFileNameReader);
 #endif
 	
@@ -117,14 +109,12 @@ int main(const int argc, const char * argv[])
 		return err;
 	}
 
-#if defined(OSC_TARGET)
 	/* Trigger image capturing */
 	err = OscGpioTriggerImage();
 	if(err != SUCCESS){
 		printf("%s: Unable to trigger capture (%d)!\n", __func__, err);
 		return err;
 	}
-#endif
 	
 	/* Do something ... */
 	/* ---------------- */
@@ -161,15 +151,8 @@ int main(const int argc, const char * argv[])
 	/* Unload camera module */
 	OscCamDestroy(hFramework);
 
-#if defined(OSC_TARGET)
 	/* Unload GPIO module */
 	OscGpioDestroy(hFramework);
-#endif
-
-#if defined(OSC_HOST)
-	/* Unload file reader module if compiled for host platform */
-	OscFrdDestroy(hFramework);
-#endif
 	
 	/* Destroy framework */
 	OscDestroy(hFramework);
