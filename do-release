@@ -1,5 +1,6 @@
 #! /usr/bin/env bash
 # do-release [ <action> ]
+# This script is used to bring the working directory into a shape where it can be released as a tar Archive.
 
 [ "$1" ] && OPT_ACTION=$1 || OPT_ACTION="release"
 
