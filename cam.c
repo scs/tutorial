@@ -130,7 +130,7 @@ int main(const int argc, const char * argv[])
 	/* ---------------- */
 	
 	/* Read Picture */
-	err = OscCamReadPicture(OSC_CAM_MULTI_BUFFER, &pic, 0, 0);
+	err = OscCamReadPicture(OSC_CAM_MULTI_BUFFER, (void *) &pic, 0, 0);
 	if(err != SUCCESS){
 		printf("%s: Unable to read picture (%d)!\n", __func__, err);
 		return err;
@@ -149,7 +149,7 @@ int main(const int argc, const char * argv[])
 	/* Do something ... */
 	/* ---------------- */
 	
-	err = OscCamReadPicture(OSC_CAM_MULTI_BUFFER, &pic, 0, 0);
+	err = OscCamReadPicture(OSC_CAM_MULTI_BUFFER, (void *) &pic, 0, 0);
 	if(err != SUCCESS){
 		printf("%s: Unable to read picture (%d)!\n", __func__, err);
 		return err;

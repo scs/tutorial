@@ -155,7 +155,7 @@ int main(const int argc, const char* argv[])
 		  fprintf(stderr, "%s: ERROR: Unable to trigger! (%d)\n", __func__, err);
 		  return err;
 		}
-		err = OscCamReadPicture(0, &pic.data, 0, 0);
+		err = OscCamReadPicture(0, (void *) &pic.data, 0, 0);
 		if (err != SUCCESS) {
 		  fprintf(stderr, "%s: ERROR: Unable read picture! (%d)\n", __func__, err);
 		  return err;
@@ -181,7 +181,7 @@ int main(const int argc, const char* argv[])
 		  fprintf(stderr, "%s: ERROR: Unable to trigger! (%d)\n", __func__, err);
 		  return err;
 		}
-		err = OscCamReadPicture(0, &pic.data, 0, 0);
+		err = OscCamReadPicture(0, (void *) &pic.data, 0, 0);
 		if (err != SUCCESS) {
 		  fprintf(stderr, "%s: ERROR: Unable read picture! (%d)\n", __func__, err);
 		  return err;
@@ -238,7 +238,7 @@ int main(const int argc, const char* argv[])
 				fprintf(stderr, "%s: ERROR: Unable to trigger! (%d)\n", __func__, err);
 				return err;
 			  }
-			  err = OscCamReadPicture(0, &pic.data, 0, 0);
+			  err = OscCamReadPicture(0, (void *) &pic.data, 0, 0);
 			  if (err != SUCCESS) {
 				fprintf(stderr, "%s: ERROR: Unable read picture! (%d)\n", __func__, err);
 				return err;
