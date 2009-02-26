@@ -45,7 +45,7 @@ int main(const int argc, const char * argv[])
 	/*! @brief Handle to framework instance. */
 	void *hFramework;
 	
-#if defined(OSC_HOST)
+#if defined(OSC_HOST) || defined(OSC_SIM)
 	/*! @brief Handle to file name reader for camera images on the host. */
 	void *hFileNameReader;
 #endif
@@ -98,15 +98,9 @@ int main(const int argc, const char * argv[])
 	OscBmpCreate(hFramework);
 	OscCamCreate(hFramework);
 	OscVisCreate(hFramework);
-#if defined(OSC_HOST)
-	OscFrdCreate(hFramework);
-#endif
-
-#if defined(OSC_TARGET)
 	OscGpioCreate(hFramework);
-#endif
 	
-#if defined(OSC_HOST)
+#if defined(OSC_HOST) || defined(OSC_SIM)
 	/* Setup file name reader (for host compiled version); read constant image */
 	OscFrdCreateConstantReader(&hFileNameReader, "imgCapture.bmp");
 	OscCamSetFileNameReader(hFileNameReader);
@@ -150,6 +144,7 @@ int main(const int argc, const char * argv[])
 		pic.type = OSC_PICTURE_GREYSCALE;
 		pic.data = rawPic;
 	}
+
 	OscBmpWrite(&pic, HTTP_ROOT "hello-world.bmp~");
 	rename(HTTP_ROOT "hello-world.bmp~", HTTP_ROOT "hello-world.bmp");
 	
@@ -157,13 +152,7 @@ int main(const int argc, const char * argv[])
 	OscBmpDestroy(hFramework);
 	OscCamDestroy(hFramework);
 	OscVisDestroy(hFramework);
-#if defined(OSC_HOST)
-	OscFrdDestroy(hFramework);
-#endif
-
-#if defined(OSC_TARGET)
 	OscGpioDestroy(hFramework);
-#endif
 	
 	/* Destroy framework */
 	OscDestroy(hFramework);
