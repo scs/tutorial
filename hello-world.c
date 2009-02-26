@@ -27,6 +27,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(OSC_HOST)
+#define HTTP_ROOT "/var/www"
+#else
+#define HTTP_ROOT "/home/httpd/"
+#endif
+
 /*********************************************************************//*!
  * @brief Program entry.
  * 
@@ -144,8 +150,8 @@ int main(const int argc, const char * argv[])
 		pic.type = OSC_PICTURE_GREYSCALE;
 		pic.data = rawPic;
 	}
-	OscBmpWrite(&pic, "/home/httpd/hello-world.bmp~");
-	rename("/home/httpd/hello-world.bmp~", "/home/httpd/hello-world.bmp");
+	OscBmpWrite(&pic, HTTP_ROOT "hello-world.bmp~");
+	rename(HTTP_ROOT "hello-world.bmp~", HTTP_ROOT "hello-world.bmp");
 	
 	/* Destroy modules */
 	OscBmpDestroy(hFramework);
