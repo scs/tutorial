@@ -21,7 +21,7 @@
  * Demonstrates a memory copy operation using dma.
  */
 
-#include "inc/oscar.h"
+#include "oscar/staging/inc/oscar.h"
 #include <stdio.h>
 
 #define WIDTH 512

@@ -22,7 +22,7 @@
  * of the last pictures. If the difference exceeds a threshold, the alarm is
  * activated (GPIO is activated). */
 
-#include "inc/oscar.h"
+#include "oscar/staging/inc/oscar.h"
 #include <stdio.h>
 #include <unistd.h>
 

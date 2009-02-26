@@ -22,7 +22,7 @@
  * See config.txt for file structure details.
  */
 
-#include "inc/oscar.h"
+#include "oscar/staging/inc/oscar.h"
 #include <stdio.h>
 
 /*********************************************************************//*!

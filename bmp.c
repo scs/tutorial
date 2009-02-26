@@ -21,7 +21,7 @@
  * Demonstrates how to read and write bitmap files.
  */
 
-#include "inc/oscar.h"
+#include "oscar/staging/inc/oscar.h"
 #include <string.h>
 
 /*********************************************************************//*!

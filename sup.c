@@ -21,7 +21,7 @@
  * Demonstrates how the watchdog timer and the cycle count functions can be used.
  */
 
-#include "inc/oscar.h"
+#include "oscar/staging/inc/oscar.h"
 #include <stdio.h>
 #include <unistd.h>
 

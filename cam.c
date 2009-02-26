@@ -21,7 +21,7 @@
  * Demonstrates how to capture pictures using multiple buffers.
  */
 
-#include "inc/oscar.h"
+#include "oscar/staging/inc/oscar.h"
 #include <stdio.h>
 
 /*********************************************************************//*!

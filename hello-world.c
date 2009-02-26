@@ -21,7 +21,7 @@
  * Initialize Framework, take a picture, modify and save it to a file.
  */
 
-#include "inc/oscar.h"
+#include "oscar/staging/inc/oscar.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
